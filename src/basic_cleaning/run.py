@@ -5,6 +5,7 @@ Download from W&B the raw dataset and apply some basic data cleaning, exporting 
 import argparse
 import logging
 import wandb
+import pandas as pd
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
@@ -18,11 +19,40 @@ def go(args):
 
     # Download input artifact. This will also log that this script is using this
     # particular version of the artifact
-    # artifact_local_path = run.use_artifact(args.input_artifact).file()
+    artifact_local_path = run.use_artifact(args.input_artifact).file()
 
-    ######################
-    # YOUR CODE HERE     #
-    ######################
+    logger.info("INFO - Download Artifact: %s", args.input_artifact)
+    data = pd.read_csv(artifact_local_path)
+
+    min_price = args.min_price
+    max_price = args.max_price
+
+    idx = data["price"].between(min_price, max_price)
+    df = df[idx].copy()
+
+    idx = df['longitude'].between(-74.25, -73.50) & df['latitude'].between(40.5, 41.2)
+    df = df[idx].copy()
+
+    # Save dataframe
+    output_artifact = args.output_artifact
+    output_type = args.output_type,
+    description=args.output_descriptio
+
+    logger.info(f'INFO - Saving Dataframe: {output_artifact}')
+    df.to_csv('clean_sample.csv', index=False)
+
+
+    artifact = wandb.Artifact(
+        output_artifact,
+        type=output_type,
+        description=description
+    )
+
+    artifact.add_file(local_path='clean_sample.csv')
+    run.log_artifact(artifact)
+
+    artifact.wait()
+    logger.info("INFO - Artifact uploaded.")
 
 
 if __name__ == "__main__":
